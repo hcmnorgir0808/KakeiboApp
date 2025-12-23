@@ -88,6 +88,66 @@ class TransactionViewModel: ObservableObject {
             .sorted { $0.amount > $1.amount }
     }
     
+    // 過去N ヶ月の月別データを取得
+    func getMonthlyData(months: Int = 6) -> [MonthlyData] {
+        let calendar = Calendar.current
+        let now = Date()
+        var monthlyDataList: [MonthlyData] = []
+        
+        for i in (0..<months).reversed() {
+            guard let targetDate = calendar.date(byAdding: .month, value: -i, to: now) else { continue }
+            let components = calendar.dateComponents([.year, .month], from: targetDate)
+            guard let year = components.year, let month = components.month else { continue }
+            
+            let monthTransactions = transactions.filter { transaction in
+                let transactionComponents = calendar.dateComponents([.year, .month], from: transaction.date)
+                return transactionComponents.year == year && transactionComponents.month == month
+            }
+            
+            let income = monthTransactions
+                .filter { $0.type == .income }
+                .reduce(0) { $0 + $1.amount }
+            
+            let expense = monthTransactions
+                .filter { $0.type == .expense }
+                .reduce(0) { $0 + $1.amount }
+            
+            monthlyDataList.append(MonthlyData(year: year, month: month, income: income, expense: expense))
+        }
+        
+        return monthlyDataList
+    }
+    
+    // 過去N年の年別データを取得
+    func getYearlyData(years: Int = 3) -> [YearlyData] {
+        let calendar = Calendar.current
+        let now = Date()
+        var yearlyDataList: [YearlyData] = []
+        
+        for i in (0..<years).reversed() {
+            guard let targetDate = calendar.date(byAdding: .year, value: -i, to: now) else { continue }
+            let components = calendar.dateComponents([.year], from: targetDate)
+            guard let year = components.year else { continue }
+            
+            let yearTransactions = transactions.filter { transaction in
+                let transactionComponents = calendar.dateComponents([.year], from: transaction.date)
+                return transactionComponents.year == year
+            }
+            
+            let income = yearTransactions
+                .filter { $0.type == .income }
+                .reduce(0) { $0 + $1.amount }
+            
+            let expense = yearTransactions
+                .filter { $0.type == .expense }
+                .reduce(0) { $0 + $1.amount }
+            
+            yearlyDataList.append(YearlyData(year: year, income: income, expense: expense))
+        }
+        
+        return yearlyDataList
+    }
+    
     // データを保存
     private func saveTransactions() {
         if let encoded = try? JSONEncoder().encode(transactions) {

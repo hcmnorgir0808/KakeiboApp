@@ -8,6 +8,13 @@ struct StatisticsView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // 比較グラフセクション
+                    ComparisonChartSection(viewModel: viewModel)
+                        .padding(.vertical)
+                    
+                    Divider()
+                        .padding(.horizontal)
+                    
                     // 今月のサマリー
                     VStack(spacing: 15) {
                         Text("今月の収支")
@@ -163,6 +170,169 @@ struct CategoryExpenseRow: View {
         .cornerRadius(10)
         .shadow(color: .gray.opacity(0.1), radius: 3, x: 0, y: 1)
         .padding(.horizontal)
+    }
+}
+
+// 比較グラフセクション
+struct ComparisonChartSection: View {
+    @ObservedObject var viewModel: TransactionViewModel
+    @State private var selectedPeriod: Period = .monthly
+    
+    enum Period: String, CaseIterable {
+        case monthly = "月別"
+        case yearly = "年別"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("収支の推移")
+                .font(.title2)
+                .fontWeight(.bold)
+                .padding(.horizontal)
+            
+            // 期間選択
+            Picker("期間", selection: $selectedPeriod) {
+                ForEach(Period.allCases, id: \.self) { period in
+                    Text(period.rawValue).tag(period)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            
+            if selectedPeriod == .monthly {
+                MonthlyComparisonChart(viewModel: viewModel)
+            } else {
+                YearlyComparisonChart(viewModel: viewModel)
+            }
+        }
+    }
+}
+
+// 月別比較グラフ
+struct MonthlyComparisonChart: View {
+    @ObservedObject var viewModel: TransactionViewModel
+    
+    var monthlyData: [MonthlyData] {
+        viewModel.getMonthlyData(months: 6)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            if monthlyData.isEmpty {
+                Text("データがありません")
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding()
+            } else {
+                // 折れ線グラフ
+                Chart {
+                    ForEach(monthlyData) { data in
+                        LineMark(
+                            x: .value("月", data.monthLabel),
+                            y: .value("収入", data.income)
+                        )
+                        .foregroundStyle(.green)
+                        .symbol(.circle)
+                        
+                        LineMark(
+                            x: .value("月", data.monthLabel),
+                            y: .value("支出", data.expense)
+                        )
+                        .foregroundStyle(.red)
+                        .symbol(.square)
+                    }
+                }
+                .frame(height: 200)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .padding()
+                
+                // 凡例
+                HStack(spacing: 20) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 10, height: 10)
+                        Text("収入")
+                            .font(.caption)
+                    }
+                    
+                    HStack(spacing: 5) {
+                        Rectangle()
+                            .fill(.red)
+                            .frame(width: 10, height: 10)
+                        Text("支出")
+                            .font(.caption)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+}
+
+// 年別比較グラフ
+struct YearlyComparisonChart: View {
+    @ObservedObject var viewModel: TransactionViewModel
+    
+    var yearlyData: [YearlyData] {
+        viewModel.getYearlyData(years: 3)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            if yearlyData.isEmpty {
+                Text("データがありません")
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding()
+            } else {
+                // 棒グラフ
+                Chart {
+                    ForEach(yearlyData) { data in
+                        BarMark(
+                            x: .value("年", data.yearLabel),
+                            y: .value("収入", data.income)
+                        )
+                        .foregroundStyle(.green)
+                        .position(by: .value("タイプ", "収入"))
+                        
+                        BarMark(
+                            x: .value("年", data.yearLabel),
+                            y: .value("支出", data.expense)
+                        )
+                        .foregroundStyle(.red)
+                        .position(by: .value("タイプ", "支出"))
+                    }
+                }
+                .frame(height: 200)
+                .chartYAxis {
+                    AxisMarks(position: .leading)
+                }
+                .padding()
+                
+                // 凡例
+                HStack(spacing: 20) {
+                    HStack(spacing: 5) {
+                        Rectangle()
+                            .fill(.green)
+                            .frame(width: 10, height: 10)
+                        Text("収入")
+                            .font(.caption)
+                    }
+                    
+                    HStack(spacing: 5) {
+                        Rectangle()
+                            .fill(.red)
+                            .frame(width: 10, height: 10)
+                        Text("支出")
+                            .font(.caption)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
     }
 }
 

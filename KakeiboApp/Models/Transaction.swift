@@ -79,3 +79,51 @@ struct Transaction: Identifiable, Codable {
         self.note = note
     }
 }
+
+// 月別データ
+struct MonthlyData: Identifiable {
+    let id = UUID()
+    let year: Int
+    let month: Int
+    let income: Double
+    let expense: Double
+    
+    var balance: Double {
+        income - expense
+    }
+    
+    var date: Date {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = 1
+        return Calendar.current.date(from: components) ?? Date()
+    }
+    
+    var monthLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M月"
+        formatter.locale = Locale(identifier: "ja_JP")
+        return formatter.string(from: date)
+    }
+    
+    var yearMonthLabel: String {
+        "\(year)年\(month)月"
+    }
+}
+
+// 年別データ
+struct YearlyData: Identifiable {
+    let id = UUID()
+    let year: Int
+    let income: Double
+    let expense: Double
+    
+    var balance: Double {
+        income - expense
+    }
+    
+    var yearLabel: String {
+        "\(year)年"
+    }
+}
